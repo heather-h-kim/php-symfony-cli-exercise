@@ -7,6 +7,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Question\ChoiceQuestion;
+use Symfony\Component\Finder\Finder;
 
 class SlackCommand extends \Symfony\Component\Console\Command\Command
 {
@@ -24,7 +25,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
         $arr2 = array('Send a message', 'List templates', 'Add a template', 'Update a template', 'Delete a template', 'List users', 'Add a user', 'Show sent messages', 'Exit');
         $choice = array_combine($arr1, $arr2);
         $question = new ChoiceQuestion(
-            'Please select your favorite color (defaults to red)',
+            'What would you like to do?',
             // choices can also be PHP objects that implement __toString() method
             $choice,
             0
@@ -37,7 +38,44 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
         switch ($option) {
             case 'Send a message':
-                echo "You chose 1";
+                echo "Send a message\n\n-----------------------------------------------------------------------------";
+
+                #List templates
+//                $finder = new Finder();
+//                $finder->files()->in('src/data')->name('templates.json');
+//
+//                print_r($finder);
+//
+//                foreach ($finder as $file) {
+//                    $contents = json_decode($file->getContents(), true);
+//                    print_r($contents);
+//                }
+//
+//                $formattedContents = array_map(static fn($messageTemplate) => $messageTemplate['message'], $contents);
+
+                $templateFile = new FileFinder('src/data', 'templates.json');
+                $templates = $templateFile->find_file();
+
+                $helper = $this->getHelper('question');
+                $question = new ChoiceQuestion(
+                    'What template?',
+                    $templates,
+                    1
+                );
+                $question->setErrorMessage('Template %s is invalid.');
+
+                $selectedTemplate = $helper->ask($input, $output, $question);
+                echo $selectedTemplate;
+
+
+
+
+
+
+
+
+
+
                 break;
             case 'List templates':
                 echo "You chose 2";
