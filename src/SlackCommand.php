@@ -168,7 +168,21 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                 break;
             case 'Add a user':
-                echo "You chose 7";
+                echo "Add a user\n\n";
+                $nameQuestion = new Question("\nEnter the user's name: ", "name");
+                $name = $helper->ask($input, $output, $question);
+
+                $idQuestion = new Question("\nEnter the user's ID: ", "ID");
+                $id = $helper->ask($input, $output, $question);
+
+                $usernameQuestion = new Question("\nEnter the user's username: ", "username");
+                $username = $helper->ask($input, $output, $question);
+
+                $displayNameQuestion = new Question("\nEnter the user's display name: ", "display name");
+                $displayName = $helper->ask($input, $output, $question);
+
+                echo "$name\n$id\n$username\n$displayName\n";
+
                 break;
             case 'Show sent messages':
                 echo "You chose 8";
