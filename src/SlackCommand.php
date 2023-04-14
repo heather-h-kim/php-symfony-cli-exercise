@@ -21,9 +21,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $helper = $this->getHelper('question');
-        $arr1 = range(1,9);
-        $arr2 = array('Send a message', 'List templates', 'Add a template', 'Update a template', 'Delete a template', 'List users', 'Add a user', 'Show sent messages', 'Exit');
-        $choice = array_combine($arr1, $arr2);
+        $choice = array( 1 => 'Send a message', 2 => 'List templates', 3 => 'Add a template', 4 => 'Update a template', 5 => 'Delete a template', 6 => 'List users', 7 => 'Add a user', 8 => 'Show sent messages', 9 => 'Exit');
         $question = new ChoiceQuestion(
             'What would you like to do?',
             // choices can also be PHP objects that implement __toString() method
@@ -33,48 +31,48 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
         $question->setErrorMessage('Option %s is invalid.');
 
         $option = $helper->ask($input, $output, $question);
-        #$output->writeln('You have just selected: '.$option);
-        #echo $option;
 
         switch ($option) {
             case 'Send a message':
-                echo "Send a message\n\n-----------------------------------------------------------------------------";
+                echo "Send a message\n\n----------------------------------------------------------------------------\n";
 
                 #List templates
-//                $finder = new Finder();
-//                $finder->files()->in('src/data')->name('templates.json');
-//
-//                print_r($finder);
-//
-//                foreach ($finder as $file) {
-//                    $contents = json_decode($file->getContents(), true);
-//                    print_r($contents);
-//                }
-//
-//                $formattedContents = array_map(static fn($messageTemplate) => $messageTemplate['message'], $contents);
 
                 $templateFile = new FileFinder('src/data', 'templates.json');
                 $templates = $templateFile->find_file();
+                $templatesArray = array_map(static fn($arr) => $arr['message'], $templates);
+
+                $helper = $this->getHelper('question');
+
+                $question = new ChoiceQuestion(
+                    "\nWhat template?",
+                    $templatesArray,
+                    1
+                );
+
+               $question->setErrorMessage('Template %s is invalid.');
+
+               $selectedTemplate = $helper->ask($input, $output, $question);
+
+
+                #List users
+
+                $userFile = new FileFinder('src/data', 'users.json');
+                $users = $userFile->find_file();
+                $usersArray = array_map(static fn($arr) => $arr['displayName'], $users);
 
                 $helper = $this->getHelper('question');
                 $question = new ChoiceQuestion(
-                    'What template?',
-                    $templates,
+                    "\nWhat user?",
+                    $usersArray,
                     1
                 );
-                $question->setErrorMessage('Template %s is invalid.');
+                $question->setErrorMessage('User %s is invalid.');
 
-                $selectedTemplate = $helper->ask($input, $output, $question);
-                echo $selectedTemplate;
-
-
-
-
-
-
-
-
-
+                $selectedUser = $helper->ask($input, $output, $question);
+                echo "Sending to @$selectedUser:\n";
+                echo str_replace("{displayName}", $selectedUser, $selectedTemplate);
+                echo "\n(enter 'yes' to send)\n";
 
                 break;
             case 'List templates':

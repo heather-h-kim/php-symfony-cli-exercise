@@ -15,17 +15,15 @@ class FileFinder extends Command
         $this->fileName = $fileName;
     }
 
-    public function find_file(){
+    public function find_file(): array
+    {
         $finder = new Finder();
         $finder->files()->in($this->fileLocation)->name($this->fileName);
 
-        print_r($finder);
-
         foreach ($finder as $file) {
             $contents = json_decode($file->getContents(), true);
-            print_r($contents);
         }
 
-        return array_map(static fn($messageTemplate) => $messageTemplate['message'], $contents);
+        return $contents;
     }
 }
