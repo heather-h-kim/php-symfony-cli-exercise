@@ -76,7 +76,14 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                 break;
             case 'List templates':
-                echo "You chose 2";
+                $templateFile = new FileFinder('src/data', 'templates.json');
+                $templates = $templateFile->find_file();
+                $templatesArray = array_map(static fn($arr) => $arr['message'], $templates);
+
+                foreach($templatesArray as $key => $value ){
+                    $newKey = $key +1;
+                    echo "  [$newKey] $value";
+                }
                 break;
             case 'Add a template':
                 echo "You chose 3";
