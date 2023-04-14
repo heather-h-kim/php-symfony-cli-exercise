@@ -76,6 +76,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                 break;
             case 'List templates':
+                echo "List templates\n\n----------------------------------------------------------------------------\n";
                 $templateFile = new FileFinder('src/data', 'templates.json');
                 $templates = $templateFile->find_file();
                 $templatesArray = array_map(static fn($arr) => $arr['message'], $templates);
