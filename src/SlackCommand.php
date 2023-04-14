@@ -186,11 +186,10 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                 break;
             case 'Show sent messages':
-                echo "You chose 8";
+                echo "Show sent messages";
                 break;
             case 'Exit':
-                echo "You chose 9";
-                break;
+                return Command::SUCCESS;
 
         }
 
