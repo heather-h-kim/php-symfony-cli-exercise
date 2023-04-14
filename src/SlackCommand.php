@@ -102,6 +102,20 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                 $question = new Question("Enter your new template and press enter to save:\n", 'Hello!');
                 $newTemplate = $helper->ask($input, $output, $question);
 
+                echo $newTemplate;
+
+                $templateFile = new FileFinder('src/data', 'templates.json');
+                $templates = $templateFile->find_file();
+                $templatesArray = array_map(static fn($arr) => $arr['message'], $templates);
+
+                $newArray = array('id' => count($templatesArray)+1, 'message' => $newTemplate);
+                $templates[] = $newArray;
+
+                $json = json_encode($templates);
+
+                $filesystem = new Filesystem();
+                $filesystem->dumpFile('src/data/templates.json', $json);
+
                 break;
             case 'Update a template':
                 echo "Update a template\n\n";
