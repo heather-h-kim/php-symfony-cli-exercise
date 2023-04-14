@@ -89,7 +89,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                 foreach($templatesArray as $key => $value ){
                     $newKey = $key +1;
-                    echo "  [$newKey] $value";
+                    echo "  [$newKey] $value\n";
                 }
                 break;
             case 'Add a template':
@@ -156,7 +156,16 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                 echo "Delete the template";
                 break;
             case 'List users':
-                echo "You chose 6";
+                echo "List users\n\n";
+                $userFile = new FileFinder('src/data', 'users.json');
+                $users = $userFile->find_file();
+                $usersArray = array_map(static fn($arr) => $arr['displayName'], $users);
+
+                foreach($usersArray as $key => $value ){
+                    $newKey = $key +1;
+                    echo "  [$newKey] $value\n";
+                }
+
                 break;
             case 'Add a user':
                 echo "You chose 7";
