@@ -7,8 +7,11 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Question\ChoiceQuestion;
-use Symfony\Component\Finder\Finder;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
+use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Path;
+use Symfony\Component\Console\Helper\Table;
 
 class SlackCommand extends \Symfony\Component\Console\Command\Command
 {
@@ -186,7 +189,21 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                 break;
             case 'Show sent messages':
-                echo "Show sent messages";
+                echo "\nShow sent messages\n";
+
+                $messageFile = new FileFinder('src/data', 'messages.json' );
+                $messages = $messageFile->find_file();
+
+                $newArray = array_map(static fn($arr) => array($arr['date'], $arr['message']), $messages);
+                print_r($newArray);
+
+
+                $table = new Table($output);
+                $table->setHeaders(['Date', 'Message'])
+                      ->setRows($newArray);
+
+                $table->render();
+
                 break;
             case 'Exit':
                 return Command::SUCCESS;
