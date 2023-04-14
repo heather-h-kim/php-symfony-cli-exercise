@@ -27,7 +27,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
             "\nWhat would you like to do?\n",
             // choices can also be PHP objects that implement __toString() method
             $choice,
-            0
+            1
         );
         $question->setErrorMessage('Option %s is invalid.');
 
@@ -169,19 +169,20 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                 break;
             case 'Add a user':
                 echo "Add a user\n\n";
+
                 $nameQuestion = new Question("\nEnter the user's name: ", "name");
-                $name = $helper->ask($input, $output, $question);
+                $name = $helper->ask($input, $output, $nameQuestion);
 
                 $idQuestion = new Question("\nEnter the user's ID: ", "ID");
-                $id = $helper->ask($input, $output, $question);
+                $id = $helper->ask($input, $output, $idQuestion);
 
                 $usernameQuestion = new Question("\nEnter the user's username: ", "username");
-                $username = $helper->ask($input, $output, $question);
+                $username = $helper->ask($input, $output, $usernameQuestion);
 
                 $displayNameQuestion = new Question("\nEnter the user's display name: ", "display name");
-                $displayName = $helper->ask($input, $output, $question);
+                $displayName = $helper->ask($input, $output, $displayNameQuestion);
 
-                echo "$name\n$id\n$username\n$displayName\n";
+                echo "\n$name\n$id\n$username\n$displayName\n";
 
                 break;
             case 'Show sent messages':
