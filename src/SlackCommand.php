@@ -136,12 +136,11 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                 echo "Update a template\n\n";
                 $templateFile = new FileFinder('src/data', 'templates.json');
                 $templates = $templateFile->find_file(); #$templates is an array of arrays
-                print_r($templates);
 
-                //create an array where key is 'id' and value is 'message'
+                //create an array for choiceQuestion
                 $templateArray = array_column($templates, 'message', 'id');
-                print_r($templateArray);
 
+                //Question to select the template to update
                 $helper = $this->getHelper('question');
 
                 $question = new ChoiceQuestion(
@@ -154,20 +153,17 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                 $selectedTemplate = $helper->ask($input, $output, $question);
 
+                //Find the key for the selected template value
                 $keyToUpdate = array_search($selectedTemplate, $templateArray);
-                #echo $keyToUpdate;
 
+                //Question to get the new template to replace the selected template
                 $questionNewTemplate = new Question("\nEnter your updated template and press enter to save: \n");
                 $newTemplate = $helper->ask($input, $output, $questionNewTemplate);
 
-                $templateArray[$keyToUpdate] = $newTemplate;
-
-                print_r($templateArray);
-
+                //Update the template
                 $templates[$keyToUpdate-1]['message'] = $newTemplate;
-                print_r($templates);
 
-
+                //Replace the current json file with the updated file
                 $json = json_encode($templates);
                 $filesystem = new Filesystem();
                 $filesystem->dumpFile('src/data/templates.json', $json);
@@ -178,31 +174,40 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                 $templateFile = new FileFinder('src/data', 'templates.json');
                 $templates = $templateFile->find_file();
-                $templatesArray = array_map(static fn($arr) => $arr['message'], $templates);
-                $keyArray = range(1, count($templatesArray));
 
-                $templatesNewKey = array_combine($keyArray, $templatesArray);
+                //Create an associative array for choiceQuestion
+                $templateArray = array_column($templates, 'message', 'id');
 
-
+                //Question to select the template to delete
                 $helper = $this->getHelper('question');
 
                 $question = new ChoiceQuestion(
                     "\nWhat template do you want to delete?\n",
-                    $templatesNewKey,
+                    $templateArray,
                     1
                 );
 
-                $question->setErrorMessage('User %s is invalid.');
+                $question->setErrorMessage('Template %s is invalid.');
 
                 $selectedTemplate = $helper->ask($input, $output, $question);
+
+                //Find the key for the selected template value
+                $keyToDelete = array_search($selectedTemplate, $templateArray);
 
                 $confirmation = new ConfirmationQuestion("\nAre you sure?\n", false);
 
                 if(!$helper->ask($input, $output, $confirmation)){
-                    return Command::SUCCESS;
+                    echo "go back to the first interface";
                 }
 
-                echo "Delete the template";
+                //Delete the selected template
+                unset($templates[$keyToDelete]);
+
+                #print_r($templates);
+                //Replace the current json file with the updated file
+                $json = json_encode($templates);
+                $filesystem = new Filesystem();
+                $filesystem->dumpFile('src/data/templates.json', $json);
                 break;
             case 'List users':
                 echo "List users\n\n";
