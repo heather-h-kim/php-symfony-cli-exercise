@@ -99,34 +99,38 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                 echo "List templates\n\n";
                 $templateFile = new FileFinder('src/data', 'templates.json');
                 $templates = $templateFile->find_file();
-                $templatesArray = array_map(static fn($arr) => $arr['message'], $templates);
 
-                foreach($templatesArray as $key => $value ){
-                    $newKey = $key +1;
-                    echo "  [$newKey] $value\n";
+                //Create an associative array
+                $templateArray = array_column($templates, 'message', 'id');
+
+                foreach($templateArray as $key => $value ){
+                    echo "  [$key] $value\n";
                 }
                 break;
             case 'Add a template':
                 echo "Add a template\n\n";
                 echo "Available variables:\n* {name}\n* {username}\n* {displayName}\n";
 
+                //Save the new template as a variable
                 $question = new Question("Enter your new template and press enter to save:\n", 'Hello!');
                 $newTemplate = $helper->ask($input, $output, $question);
 
-                echo $newTemplate;
-
+                #echo $newTemplate;
+                //Get the list of templates and add the new template
                 $templateFile = new FileFinder('src/data', 'templates.json');
                 $templates = $templateFile->find_file();
-                $templatesArray = array_map(static fn($arr) => $arr['message'], $templates);
 
-                $newArray = array('id' => count($templatesArray)+1, 'message' => $newTemplate);
-                $templates[] = $newArray;
+                //Create a new template object
+                $arrayToAdd = array('id' => count($templates)+1, 'message' => $newTemplate);
+                $objectToAdd = (object) $arrayToAdd;
 
+                //Add the new array to $templates array
+                $templates[] = $objectToAdd;
+
+                //Replace the templates.json file with the updated file
                 $json = json_encode($templates);
-
                 $filesystem = new Filesystem();
                 $filesystem->dumpFile('src/data/templates.json', $json);
-
                 break;
             case 'Update a template':
                 echo "Update a template\n\n";
