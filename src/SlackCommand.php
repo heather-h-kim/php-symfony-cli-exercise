@@ -211,13 +211,17 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                 break;
             case 'List users':
                 echo "List users\n\n";
+                //Find the file and get content of the file
                 $userFile = new FileFinder('src/data', 'users.json');
-                $users = $userFile->find_file();
-                $usersArray = array_map(static fn($arr) => $arr['displayName'], $users);
+                $users = $userFile->find_file(); #an array of arrays
 
-                foreach($usersArray as $key => $value ){
-                    $newKey = $key +1;
-                    echo "  [$newKey] $value\n";
+                //Create an array for display
+                $userArray = array_column($users, 'displayName');
+                $keyArray = range(1, count($userArray));
+                $updatedUserArray = array_combine($keyArray, $userArray);
+
+                foreach($updatedUserArray as $key => $value ){
+                    echo "  [$key] $value\n";
                 }
 
                 break;
