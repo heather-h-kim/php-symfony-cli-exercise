@@ -115,8 +115,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                 $question = new Question("Enter your new template and press enter to save:\n", 'Hello!');
                 $newTemplate = $helper->ask($input, $output, $question);
 
-                #echo $newTemplate;
-                //Get the list of templates and add the new template
+                //Get the list of templates
                 $templateFile = new FileFinder('src/data', 'templates.json');
                 $templates = $templateFile->find_file();
 
@@ -232,7 +231,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                 $name = $helper->ask($input, $output, $nameQuestion);
 
                 $idQuestion = new Question("\nEnter the user's ID: ", "ID");
-                $id = $helper->ask($input, $output, $idQuestion);
+                $userId = $helper->ask($input, $output, $idQuestion);
 
                 $usernameQuestion = new Question("\nEnter the user's username: ", "username");
                 $username = $helper->ask($input, $output, $usernameQuestion);
@@ -240,7 +239,21 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                 $displayNameQuestion = new Question("\nEnter the user's display name: ", "display name");
                 $displayName = $helper->ask($input, $output, $displayNameQuestion);
 
-                echo "\n$name\n$id\n$username\n$displayName\n";
+                //Get an array of users
+                $userFile = new FileFinder('src/data', 'users.json');
+                $users = $userFile->find_file(); #an array of arrays
+
+                //Create a user template object
+                $arrayToAdd = array('name' => $name, 'userID' => $userId, 'username' => $username, 'displayName' => $displayName);
+                $objectToAdd = (object) $arrayToAdd;
+
+                //Add the new array to $templates array
+                $users[] = $objectToAdd;
+
+                //Replace the templates.json file with the updated file
+                $json = json_encode($users);
+                $filesystem = new Filesystem();
+                $filesystem->dumpFile('src/data/users.json', $json);
 
                 break;
             case 'Show sent messages':
