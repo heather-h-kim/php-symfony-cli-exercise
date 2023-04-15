@@ -120,25 +120,42 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
             case 'Update a template':
                 echo "Update a template\n\n";
                 $templateFile = new FileFinder('src/data', 'templates.json');
-                $templates = $templateFile->find_file();
-                $templatesArray = array_map(static fn($arr) => $arr['message'], $templates);
-                $keyArray = range(1, count($templatesArray));
+                $templates = $templateFile->find_file(); #$templates is an array of arrays
+                print_r($templates);
 
-                $templatesNewKey = array_combine($keyArray, $templatesArray);
-
+                //create an array where key is 'id' and value is 'message'
+                $templateArray = array_column($templates, 'message', 'id');
+                print_r($templateArray);
 
                 $helper = $this->getHelper('question');
 
                 $question = new ChoiceQuestion(
                     "\nWhat template do you want to update?\n",
-                    $templatesNewKey,
+                    $templateArray,
                     1
                 );
 
-                $question->setErrorMessage('User %s is invalid.');
+                $question->setErrorMessage('Template % is invalid.');
 
                 $selectedTemplate = $helper->ask($input, $output, $question);
 
+                $keyToUpdate = array_search($selectedTemplate, $templateArray);
+                #echo $keyToUpdate;
+
+                $questionNewTemplate = new Question("\nEnter your updated template and press enter to save: \n");
+                $newTemplate = $helper->ask($input, $output, $questionNewTemplate);
+
+                $templateArray[$keyToUpdate] = $newTemplate;
+
+                print_r($templateArray);
+
+                $templates[$keyToUpdate-1]['message'] = $newTemplate;
+                print_r($templates);
+
+
+                $json = json_encode($templates);
+                $filesystem = new Filesystem();
+                $filesystem->dumpFile('src/data/templates.json', $json);
 
                 break;
             case 'Delete a template':
