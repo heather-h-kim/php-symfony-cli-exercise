@@ -40,49 +40,60 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
             case 'Send a message':
                 echo "Send a message\n\n----------------------------------------------------------------------------\n";
 
-                #List templates
-
+                //List templates
+                //Find the file and get content of the file
                 $templateFile = new FileFinder('src/data', 'templates.json');
-                $templates = $templateFile->find_file();
-                $templatesArray = array_map(static fn($arr) => $arr['message'], $templates);
-                $keyArray = range(1, count($templatesArray));
+                $templates = $templateFile->find_file(); #$templates is an array of arrays
 
-                $templatesNewKey = array_combine($keyArray, $templatesArray);
+                //Create an array for the choice question
+                $templateArray = array_column($templates, 'message', 'id');
 
+                //Choice question
                 $helper = $this->getHelper('question');
-
-                $question = new ChoiceQuestion(
+                $questionTemplate = new ChoiceQuestion(
                     "\nWhat template?\n",
-                    $templatesNewKey,
+                    $templateArray,
                     1
                 );
 
                $question->setErrorMessage('Template %s is invalid.');
 
-               $selectedTemplate = $helper->ask($input, $output, $question);
+               $selectedTemplate = $helper->ask($input, $output, $questionTemplate);
 
-
-                #List users
-
+                //List users
+                //Find the file and get content of the file
                 $userFile = new FileFinder('src/data', 'users.json');
-                $users = $userFile->find_file();
-                $usersArray = array_map(static fn($arr) => $arr['displayName'], $users);
-                $keyArray = range(1, count($usersArray));
-                $usersNewKey = array_combine($keyArray, $usersArray);
+                $users = $userFile->find_file(); #an array of arrays
 
+                //Create an array for the choice question
+                $userArray = array_column($users, 'displayName');
+                $keyArray = range(1, count($userArray));
+                $updatedUserArray = array_combine($keyArray, $userArray);
+
+                //Choice question
                 $helper = $this->getHelper('question');
-                $question = new ChoiceQuestion(
+                $questionUser = new ChoiceQuestion(
                     "\nWhat user?\n",
-                    $usersNewKey,
+                    $updatedUserArray,
                     1
                 );
                 $question->setErrorMessage('User %s is invalid.');
 
-                $selectedUser = $helper->ask($input, $output, $question);
+                $selectedUser = $helper->ask($input, $output, $questionUser);
+
+                //Prints the message to send
                 echo "Sending to @$selectedUser:\n";
                 echo str_replace("{displayName}", $selectedUser, $selectedTemplate);
-                echo "\n(enter 'yes' to send)\n";
 
+                $helper = $this->getHelper('question');
+                $questionSend = new ConfirmationQuestion("(enter 'yes' to send)\n", false);
+
+                if (!$helper->ask($input, $output, $questionSend)){
+                    echo "going back to the first page";
+                }
+
+                //Send the message
+                echo "message sent!";
                 break;
             case 'List templates':
                 echo "List templates\n\n";
