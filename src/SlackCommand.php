@@ -12,6 +12,8 @@ use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Process\Exception\ProcessFailedException;
+use Symfony\Component\Process\Process;
 
 class SlackCommand extends \Symfony\Component\Console\Command\Command
 {
@@ -24,261 +26,333 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $helper = $this->getHelper('question');
-        $choice = array( 1 => 'Send a message', 2 => 'List templates', 3 => 'Add a template', 4 => 'Update a template', 5 => 'Delete a template', 6 => 'List users', 7 => 'Add a user', 8 => 'Show sent messages', 9 => 'Exit');
-        $question = new ChoiceQuestion(
-            "\nWhat would you like to do?\n",
-            // choices can also be PHP objects that implement __toString() method
-            $choice,
-            1
-        );
-        $question->setErrorMessage('Option %s is invalid.');
+        //Set a variable to use as the condition for a while loop
+        $keepGoing = true;
 
-        $option = $helper->ask($input, $output, $question);
+        while($keepGoing) {
+            $helper = $this->getHelper('question');
+            $choice = array( 1 => 'Send a message', 2 => 'List templates', 3 => 'Add a template', 4 => 'Update a template', 5 => 'Delete a template', 6 => 'List users', 7 => 'Add a user', 8 => 'Show sent messages', 9 => 'Exit');
+            $question = new ChoiceQuestion(
+                "\nWhat would you like to do?\n",
+                $choice,
+                1
+            );
+            $question->setErrorMessage('Option %s is invalid.');
 
-        switch ($option) {
-            case 'Send a message':
-                echo "Send a message\n\n----------------------------------------------------------------------------\n";
+            $option = $helper->ask($input, $output, $question);
+            #echo "\n$option\n";
+            switch ($option) {
+                case 'Send a message':
+                    echo "Send a message\n\n----------------------------------------------------------------------------\n";
 
-                //List templates
-                //Find the file and get content of the file
-                $templateFile = new FileFinder('src/data', 'templates.json');
-                $templates = $templateFile->find_file(); #$templates is an array of arrays
+                    //List templates
+                    //Find the file and get content of the file
+                    $templateFile = new FileFinder('src/data', 'templates.json');
+                    $templates = $templateFile->find_file(); #$templates is an array of arrays
 
-                //Create an array for the choice question
-                $templateArray = array_column($templates, 'message', 'id');
+                    //Create an array for the choice question
+                    $templateArray = array_column($templates, 'message', 'id');
 
-                //Choice question
-                $helper = $this->getHelper('question');
-                $questionTemplate = new ChoiceQuestion(
-                    "\nWhat template?\n",
-                    $templateArray,
-                    1
-                );
+                    //Choice question
+                    $helper = $this->getHelper('question');
+                    $questionTemplate = new ChoiceQuestion(
+                        "\nWhat template?\n",
+                        $templateArray,
+                        1
+                    );
 
-               $question->setErrorMessage('Template %s is invalid.');
+                    $question->setErrorMessage('Template %s is invalid.');
 
-               $selectedTemplate = $helper->ask($input, $output, $questionTemplate);
+                    $selectedTemplate = $helper->ask($input, $output, $questionTemplate);
 
-                //List users
-                //Find the file and get content of the file
-                $userFile = new FileFinder('src/data', 'users.json');
-                $users = $userFile->find_file(); #an array of arrays
+                    //List users
+                    //Find the file and get content of the file
+                    $userFile = new FileFinder('src/data', 'users.json');
+                    $users = $userFile->find_file(); #an array of arrays
 
-                //Create an array for the choice question
-                $userArray = array_column($users, 'displayName');
-                $keyArray = range(1, count($userArray));
-                $updatedUserArray = array_combine($keyArray, $userArray);
+                    //Create an array for the choice question
+                    $userArray = array_column($users, 'displayName');
+                    $keyArray = range(1, count($userArray));
+                    $updatedUserArray = array_combine($keyArray, $userArray);
 
-                //Choice question
-                $helper = $this->getHelper('question');
-                $questionUser = new ChoiceQuestion(
-                    "\nWhat user?\n",
-                    $updatedUserArray,
-                    1
-                );
-                $question->setErrorMessage('User %s is invalid.');
+                    //Choice question
+                    $helper = $this->getHelper('question');
+                    $questionUser = new ChoiceQuestion(
+                        "\nWhat user?\n",
+                        $updatedUserArray,
+                        1
+                    );
+                    $question->setErrorMessage('User %s is invalid.');
 
-                $selectedUser = $helper->ask($input, $output, $questionUser);
+                    $selectedUser = $helper->ask($input, $output, $questionUser);
 
-                //Prints the message to send
-                echo "Sending to @$selectedUser:\n";
-                echo str_replace("{displayName}", $selectedUser, $selectedTemplate);
+                    //Prints the message to send
+                    echo "Sending to @$selectedUser:\n";
+                    $messageToSend = str_replace("{displayName}", $selectedUser, $selectedTemplate);
+                    echo "$messageToSend\n";
 
-                $helper = $this->getHelper('question');
-                $questionSend = new ConfirmationQuestion("(enter 'yes' to send)\n", false);
+                    //Grab the current time when the message is sent
+                    $timeZone = 'America/Chicago';
+                    $timestamp = time();
+                    $dateTime = new \DateTime("now", new \DateTimeZone($timeZone));
+                    $dateTime->setTimestamp($timestamp);
+                    $messageDateTime = $dateTime->format(\DateTimeInterface::RFC2822);
 
-                if (!$helper->ask($input, $output, $questionSend)){
-                    echo "going back to the first page";
-                }
+                    $helper = $this->getHelper('question');
+                    $questionSend = new ConfirmationQuestion("\n(enter 'yes' to send)\n", false);
 
-                //Send the message
-                echo "message sent!";
-                break;
-            case 'List templates':
-                echo "List templates\n\n";
-                $templateFile = new FileFinder('src/data', 'templates.json');
-                $templates = $templateFile->find_file();
+                    if (!$helper->ask($input, $output, $questionSend)) {
 
-                //Create an associative array
-                $templateArray = array_column($templates, 'message', 'id');
+                        $questionReturn= new Question("\nenter 'm' for more\n", 'm');
 
-                foreach($templateArray as $key => $value ){
-                    echo "  [$key] $value\n";
-                }
-                break;
-            case 'Add a template':
-                echo "Add a template\n\n";
-                echo "Available variables:\n* {name}\n* {username}\n* {displayName}\n";
+                        $answer = $helper->ask($input, $output, $questionReturn);
 
-                //Save the new template as a variable
-                $question = new Question("Enter your new template and press enter to save:\n", 'Hello!');
-                $newTemplate = $helper->ask($input, $output, $question);
+                        if($answer === 'm'){
+                            break;
+                        }
 
-                //Get the list of templates
-                $templateFile = new FileFinder('src/data', 'templates.json');
-                $templates = $templateFile->find_file();
+                    }
 
-                //Create a new template object
-                $arrayToAdd = array('id' => count($templates)+1, 'message' => $newTemplate);
-                $objectToAdd = (object) $arrayToAdd;
+                    //If yes, send & save the message
+                    //Send the message
+                    $yourname = "Heather";
+                    $process = new Process(["curl", "-X", "POST", "-H", "Content-Type: application/json", "-d", "{\"channel\": \"#accelerated-engineer-program\", \"username\": \"$yourname\", \"text\": \"$messageToSend\", \"icon_emoji\": \":ghost:\"}", 'https://hooks.slack.com/services/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']);
 
-                //Add the new array to $templates array
-                $templates[] = $objectToAdd;
+                    $process->run();
 
-                //Replace the templates.json file with the updated file
-                $json = json_encode($templates);
-                $filesystem = new Filesystem();
-                $filesystem->dumpFile('src/data/templates.json', $json);
-                break;
-            case 'Update a template':
-                echo "Update a template\n\n";
-                $templateFile = new FileFinder('src/data', 'templates.json');
-                $templates = $templateFile->find_file(); #$templates is an array of arrays
+                    // executes after the command finishes
+                    if (!$process->isSuccessful()) {
+                        throw new ProcessFailedException($process);
+                    }
 
-                //create an array for choiceQuestion
-                $templateArray = array_column($templates, 'message', 'id');
+                    echo $process->getOutput();
 
-                //Question to select the template to update
-                $helper = $this->getHelper('question');
+                    //Save the message
+                    $messageFile = new FileFinder('src/data', 'messages.json');
+                    $messages = $messageFile->find_file();
 
-                $question = new ChoiceQuestion(
-                    "\nWhat template do you want to update?\n",
-                    $templateArray,
-                    1
-                );
+                    //Create a new message object
+                    $arrayToAdd = array('id' => count($messages) + 1, 'message' => $messageToSend, 'date' => $messageDateTime);
+                    $objectToAdd = (object)$arrayToAdd;
 
-                $question->setErrorMessage('Template % is invalid.');
+                    //Add the new array to $templates array
+                    $messages[] = $objectToAdd;
 
-                $selectedTemplate = $helper->ask($input, $output, $question);
+                    //Replace the templates.json file with the updated file
+                    $json = json_encode($messages);
+                    $filesystem = new Filesystem();
+                    $filesystem->dumpFile('src/data/messages.json', $json);
 
-                //Find the key for the selected template value
-                $keyToUpdate = array_search($selectedTemplate, $templateArray);
+                    break;
+                case 'List templates':
+//                    echo "List templates\n\n";
+//                    $templateFile = new FileFinder('src/data', 'templates.json');
+//                    $templates = $templateFile->find_file();
+//
+//                    //Create an associative array
+//                    $templateArray = array_column($templates, 'message', 'id');
+//
+//                    foreach ($templateArray as $key => $value) {
+//                        echo "  [$key] $value\n";
+//                    }
+                    $this->list_templates();
 
-                //Question to get the new template to replace the selected template
-                $questionNewTemplate = new Question("\nEnter your updated template and press enter to save: \n");
-                $newTemplate = $helper->ask($input, $output, $questionNewTemplate);
+                    $questionReturn= new Question("\nenter 'm' for more\n", 'm');
 
-                //Update the template
-                $templates[$keyToUpdate-1]['message'] = $newTemplate;
+                    $answer = $helper->ask($input, $output, $questionReturn);
 
-                //Replace the current json file with the updated file
-                $json = json_encode($templates);
-                $filesystem = new Filesystem();
-                $filesystem->dumpFile('src/data/templates.json', $json);
+                    if($answer === 'm'){
+                        break;
+                    }
+                    #break;
+                case 'Add a template':
+                    echo "Add a template\n\n";
+                    echo "Available variables:\n* {name}\n* {username}\n* {displayName}\n";
 
-                break;
-            case 'Delete a template':
-                echo "Delete a template\n\n";
+                    //Save the new template as a variable
+                    $question = new Question("Enter your new template and press enter to save:\n", 'Hello!');
+                    $newTemplate = $helper->ask($input, $output, $question);
 
-                $templateFile = new FileFinder('src/data', 'templates.json');
-                $templates = $templateFile->find_file();
+                    //Get the list of templates
+                    $templateFile = new FileFinder('src/data', 'templates.json');
+                    $templates = $templateFile->find_file();
 
-                //Create an associative array for choiceQuestion
-                $templateArray = array_column($templates, 'message', 'id');
+                    //Create a new template object
+                    $arrayToAdd = array('id' => count($templates) + 1, 'message' => $newTemplate);
+                    $objectToAdd = (object)$arrayToAdd;
 
-                //Question to select the template to delete
-                $helper = $this->getHelper('question');
+                    //Add the new array to $templates array
+                    $templates[] = $objectToAdd;
 
-                $question = new ChoiceQuestion(
-                    "\nWhat template do you want to delete?\n",
-                    $templateArray,
-                    1
-                );
+                    //Replace the templates.json file with the updated file
+                    $json = json_encode($templates);
+                    $filesystem = new Filesystem();
+                    $filesystem->dumpFile('src/data/templates.json', $json);
+                    break;
+                case 'Update a template':
+                    echo "Update a template\n\n";
+                    $templateFile = new FileFinder('src/data', 'templates.json');
+                    $templates = $templateFile->find_file(); #$templates is an array of arrays
 
-                $question->setErrorMessage('Template %s is invalid.');
+                    //create an array for choiceQuestion
+                    $templateArray = array_column($templates, 'message', 'id');
 
-                $selectedTemplate = $helper->ask($input, $output, $question);
+                    //Question to select the template to update
+                    $helper = $this->getHelper('question');
 
-                //Find the key for the selected template value
-                $keyToDelete = array_search($selectedTemplate, $templateArray);
+                    $question = new ChoiceQuestion(
+                        "\nWhat template do you want to update?\n",
+                        $templateArray,
+                        1
+                    );
 
-                $confirmation = new ConfirmationQuestion("\nAre you sure?\n", false);
+                    $question->setErrorMessage('Template % is invalid.');
 
-                if(!$helper->ask($input, $output, $confirmation)){
-                    echo "go back to the first interface";
-                }
+                    $selectedTemplate = $helper->ask($input, $output, $question);
 
-                //Delete the selected template
-                unset($templates[$keyToDelete]);
+                    //Find the key for the selected template value
+                    $keyToUpdate = array_search($selectedTemplate, $templateArray);
 
-                #print_r($templates);
-                //Replace the current json file with the updated file
-                $json = json_encode($templates);
-                $filesystem = new Filesystem();
-                $filesystem->dumpFile('src/data/templates.json', $json);
-                break;
-            case 'List users':
-                echo "List users\n\n";
-                //Find the file and get content of the file
-                $userFile = new FileFinder('src/data', 'users.json');
-                $users = $userFile->find_file(); #an array of arrays
+                    //Question to get the new template to replace the selected template
+                    $questionNewTemplate = new Question("\nEnter your updated template and press enter to save: \n");
+                    $newTemplate = $helper->ask($input, $output, $questionNewTemplate);
 
-                //Create an array for display
-                $userArray = array_column($users, 'displayName');
-                $keyArray = range(1, count($userArray));
-                $updatedUserArray = array_combine($keyArray, $userArray);
+                    //Update the template
+                    $templates[$keyToUpdate - 1]['message'] = $newTemplate;
 
-                foreach($updatedUserArray as $key => $value ){
-                    echo "  [$key] $value\n";
-                }
+                    //Replace the current json file with the updated file
+                    $json = json_encode($templates);
+                    $filesystem = new Filesystem();
+                    $filesystem->dumpFile('src/data/templates.json', $json);
 
-                break;
-            case 'Add a user':
-                echo "Add a user\n\n";
+                    break;
+                case 'Delete a template':
+                    echo "Delete a template\n\n";
 
-                $nameQuestion = new Question("\nEnter the user's name: ", "name");
-                $name = $helper->ask($input, $output, $nameQuestion);
+                    $templateFile = new FileFinder('src/data', 'templates.json');
+                    $templates = $templateFile->find_file();
 
-                $idQuestion = new Question("\nEnter the user's ID: ", "ID");
-                $userId = $helper->ask($input, $output, $idQuestion);
+                    //Create an associative array for choiceQuestion
+                    $templateArray = array_column($templates, 'message', 'id');
 
-                $usernameQuestion = new Question("\nEnter the user's username: ", "username");
-                $username = $helper->ask($input, $output, $usernameQuestion);
+                    //Question to select the template to delete
+                    $helper = $this->getHelper('question');
 
-                $displayNameQuestion = new Question("\nEnter the user's display name: ", "display name");
-                $displayName = $helper->ask($input, $output, $displayNameQuestion);
+                    $question = new ChoiceQuestion(
+                        "\nWhat template do you want to delete?\n",
+                        $templateArray,
+                        1
+                    );
 
-                //Get an array of users
-                $userFile = new FileFinder('src/data', 'users.json');
-                $users = $userFile->find_file(); #an array of arrays
+                    $question->setErrorMessage('Template %s is invalid.');
 
-                //Create a user template object
-                $arrayToAdd = array('name' => $name, 'userID' => $userId, 'username' => $username, 'displayName' => $displayName);
-                $objectToAdd = (object) $arrayToAdd;
+                    $selectedTemplate = $helper->ask($input, $output, $question);
 
-                //Add the new array to $templates array
-                $users[] = $objectToAdd;
+                    //Find the key for the selected template value
+                    $keyToDelete = array_search($selectedTemplate, $templateArray);
 
-                //Replace the templates.json file with the updated file
-                $json = json_encode($users);
-                $filesystem = new Filesystem();
-                $filesystem->dumpFile('src/data/users.json', $json);
+                    $confirmation = new ConfirmationQuestion("\nAre you sure?\n", false);
 
-                break;
-            case 'Show sent messages':
-                echo "\nShow sent messages\n";
+                    if (!$helper->ask($input, $output, $confirmation)) {
+                        echo "go back to the first interface";
+                    }
 
-                $messageFile = new FileFinder('src/data', 'messages.json' );
-                $messages = $messageFile->find_file();
+                    //Delete the selected template
+                    unset($templates[$keyToDelete]);
 
-                $newArray = array_map(static fn($arr) => array($arr['date'], $arr['message']), $messages);
-                print_r($newArray);
+                    #print_r($templates);
+                    //Replace the current json file with the updated file
+                    $json = json_encode($templates);
+                    $filesystem = new Filesystem();
+                    $filesystem->dumpFile('src/data/templates.json', $json);
+                    break;
+                case 'List users':
+                    echo "List users\n\n";
+                    //Find the file and get content of the file
+                    $userFile = new FileFinder('src/data', 'users.json');
+                    $users = $userFile->find_file(); #an array of arrays
+
+                    //Create an array for display
+                    $userArray = array_column($users, 'displayName');
+                    $keyArray = range(1, count($userArray));
+                    $updatedUserArray = array_combine($keyArray, $userArray);
+
+                    foreach ($updatedUserArray as $key => $value) {
+                        echo "  [$key] $value\n";
+                    }
+
+                    break;
+                case 'Add a user':
+                    echo "Add a user\n\n";
+
+                    $nameQuestion = new Question("\nEnter the user's name: ", "name");
+                    $name = $helper->ask($input, $output, $nameQuestion);
+
+                    $idQuestion = new Question("\nEnter the user's ID: ", "ID");
+                    $userId = $helper->ask($input, $output, $idQuestion);
+
+                    $usernameQuestion = new Question("\nEnter the user's username: ", "username");
+                    $username = $helper->ask($input, $output, $usernameQuestion);
+
+                    $displayNameQuestion = new Question("\nEnter the user's display name: ", "display name");
+                    $displayName = $helper->ask($input, $output, $displayNameQuestion);
+
+                    //Get an array of users
+                    $userFile = new FileFinder('src/data', 'users.json');
+                    $users = $userFile->find_file(); #an array of arrays
+
+                    //Create a user template object
+                    $arrayToAdd = array('name' => $name, 'userID' => $userId, 'username' => $username, 'displayName' => $displayName);
+                    $objectToAdd = (object)$arrayToAdd;
+
+                    //Add the new array to $templates array
+                    $users[] = $objectToAdd;
+
+                    //Replace the templates.json file with the updated file
+                    $json = json_encode($users);
+                    $filesystem = new Filesystem();
+                    $filesystem->dumpFile('src/data/users.json', $json);
+
+                    break;
+                case 'Show sent messages':
+                    echo "\nShow sent messages\n";
+
+                    $messageFile = new FileFinder('src/data', 'messages.json');
+                    $messages = $messageFile->find_file();
+
+                    $newArray = array_map(static fn($arr) => array($arr['date'], $arr['message']), $messages);
+                    print_r($newArray);
 
 
-                $table = new Table($output);
-                $table->setHeaders(['Date', 'Message'])
-                      ->setRows($newArray);
+                    $table = new Table($output);
+                    $table->setHeaders(['Date', 'Message'])
+                        ->setRows($newArray);
 
-                $table->render();
+                    $table->render();
 
-                break;
-            case 'Exit':
-                return Command::SUCCESS;
+                    break;
+                case 'Exit':
+                    $keepGoing = false;
+                    return Command::SUCCESS;
 
+            }
         }
-
 
         return Command::SUCCESS;
     }
+
+    protected function list_templates(){
+        echo "List templates\n\n";
+        $templateFile = new FileFinder('src/data', 'templates.json');
+        $templates = $templateFile->find_file();
+
+        //Create an associative array
+        $templateArray = array_column($templates, 'message', 'id');
+
+        foreach ($templateArray as $key => $value) {
+            echo "  [$key] $value\n";
+        }
+    }
+
+
 }
