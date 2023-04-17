@@ -31,29 +31,26 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
         while($keepGoing) {
             $helper = $this->getHelper('question');
-            $choice = array( 1 => 'Send a message', 2 => 'List templates', 3 => 'Add a template', 4 => 'Update a template', 5 => 'Delete a template', 6 => 'List users', 7 => 'Add a user', 8 => 'Show sent messages', 9 => 'Exit');
-            $question = new ChoiceQuestion(
-                "\nWhat would you like to do?\n",
-                $choice,
-                1
-            );
-            $question->setErrorMessage('Option %s is invalid.');
-
-            $option = $helper->ask($input, $output, $question);
+//            $helper = $this->getHelper('question');
+//            $choice = array( 1 => 'Send a message', 2 => 'List templates', 3 => 'Add a template', 4 => 'Update a template', 5 => 'Delete a template', 6 => 'List users', 7 => 'Add a user', 8 => 'Show sent messages', 9 => 'Exit');
+//            $question = new ChoiceQuestion(
+//                "\nWhat would you like to do?\n",
+//                $choice,
+//                1
+//            );
+//            $question->setErrorMessage('Option %s is invalid.');
+//
+//            $option = $helper->ask($input, $output, $question);
+            $option = $this->list_main_options($input, $output);
             #echo "\n$option\n";
             switch ($option) {
                 case 'Send a message':
                     echo "Send a message\n\n----------------------------------------------------------------------------\n";
 
                     //List templates
-                    //Find the file and get content of the file
-                    $templateFile = new FileFinder('src/data', 'templates.json');
-                    $templates = $templateFile->find_file(); #$templates is an array of arrays
 
-                    //Create an array for the choice question
-                    $templateArray = array_column($templates, 'message', 'id');
+                    $templateArray =  $this->get_templates();
 
-                    //Choice question
                     $helper = $this->getHelper('question');
                     $questionTemplate = new ChoiceQuestion(
                         "\nWhat template?\n",
@@ -61,7 +58,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                         1
                     );
 
-                    $question->setErrorMessage('Template %s is invalid.');
+                    $questionTemplate->setErrorMessage('Template %s is invalid.');
 
                     $selectedTemplate = $helper->ask($input, $output, $questionTemplate);
 
@@ -82,7 +79,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                         $updatedUserArray,
                         1
                     );
-                    $question->setErrorMessage('User %s is invalid.');
+                    $questionUser->setErrorMessage('User %s is invalid.');
 
                     $selectedUser = $helper->ask($input, $output, $questionUser);
 
@@ -145,17 +142,11 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                     break;
                 case 'List templates':
-//                    echo "List templates\n\n";
-//                    $templateFile = new FileFinder('src/data', 'templates.json');
-//                    $templates = $templateFile->find_file();
-//
-//                    //Create an associative array
-//                    $templateArray = array_column($templates, 'message', 'id');
-//
-//                    foreach ($templateArray as $key => $value) {
-//                        echo "  [$key] $value\n";
-//                    }
-                    $this->list_templates();
+                    echo "List templates\n\n";
+                    $templateArray = $this->get_templates();
+                    foreach ($templateArray as $key => $value) {
+                        echo "  [$key] $value\n";
+                    }
 
                     $questionReturn= new Question("\nenter 'm' for more\n", 'm');
 
@@ -341,17 +332,27 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
         return Command::SUCCESS;
     }
 
-    protected function list_templates(){
-        echo "List templates\n\n";
+    protected function list_main_options(InputInterface $input, OutputInterface $output){
+        $helper = $this->getHelper('question');
+        $choice = array( 1 => 'Send a message', 2 => 'List templates', 3 => 'Add a template', 4 => 'Update a template', 5 => 'Delete a template', 6 => 'List users', 7 => 'Add a user', 8 => 'Show sent messages', 9 => 'Exit');
+        $question = new ChoiceQuestion(
+            "\nWhat would you like to do?\n",
+            $choice,
+            1
+        );
+        $question->setErrorMessage('Option %s is invalid.');
+
+        return $helper->ask($input, $output, $question);
+    }
+
+
+    protected function get_templates(): array
+    {
         $templateFile = new FileFinder('src/data', 'templates.json');
-        $templates = $templateFile->find_file();
+        $templates = $templateFile->find_file(); #$templates is an array of arrays
 
         //Create an associative array
-        $templateArray = array_column($templates, 'message', 'id');
-
-        foreach ($templateArray as $key => $value) {
-            echo "  [$key] $value\n";
-        }
+        return array_column($templates, 'message', 'id');
     }
 
 
