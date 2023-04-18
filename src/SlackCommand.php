@@ -8,13 +8,15 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
+use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
-use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
-//include 'webhookUrl.php';
+use Symfony\Component\Console\Formatter\OutputFormatterStyle;
+
 
 
 class SlackCommand extends \Symfony\Component\Console\Command\Command
@@ -28,36 +30,36 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-
+        $io = new SymfonyStyle($input, $output);
+        $io->title('SLACK MESSAGE SENDER');
 
         //Set a variable to use as the condition for a while loop
-        $keepGoing = true;
+        $exit = false;
 
         //Set question helper
         $helper = $this->getHelper('question');
 
-        while ($keepGoing) {
+        while (!$exit) {
             //Display main options and let the user select one
             $option = $this->list_main_options($input, $output);
 
             switch ($option) {
                 case 'Send a message':
-                    echo "Send a message\n\n----------------------------------------------------------------------------\n";
+                    $io->section("\nSend a message");
 
-                    //List templates
+                    //List templates and ask the user to select one
                     $templateArray =  $this->get_templates();
 
                     $templatesQuestion = new ChoiceQuestion(
-                        "\nWhat template?\n",
+                        "What template?\n",
                         $templateArray,
                         1
                     );
 
                     $templatesQuestion->setErrorMessage('Template %s is invalid.');
-
                     $selectedTemplate = $helper->ask($input, $output, $templatesQuestion);
 
-                    //List users
+                    //List users and ask the user to select one
                     $userArray = $this->get_users();
 
                     $userQuestion = new ChoiceQuestion(
@@ -87,8 +89,8 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                     //If no, go back to the main interface
                     if (!$helper->ask($input, $output, $messageSendConfirmation)) {
-                        $answer = $this->ask_for_more($input, $output);
-                        if($answer === 'm'){
+                        $answer = $this->main_menu($input, $output);
+                        if($answer === 'b'){
                             break;
                         }
                     }
@@ -133,20 +135,25 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     }
                     break;
                 case 'List templates':
-                    echo "List templates\n\n";
+                    $io->section("\nList templates");
                     $templateArray = $this->get_templates();
+
+                    //Create a green text format
+                    $outputStyle = new OutputFormatterStyle('green');
+                    $output->getFormatter()->setStyle('key', $outputStyle);
+
                     foreach ($templateArray as $key => $value) {
-                        echo "  [$key] $value\n";
+                        $output->writeln( "  [<key>$key</>] $value");
                     }
 
                     //Ask the user to go back to the main interface before going back
-                    $answer = $this->ask_for_more($input, $output);
-                    if($answer === 'm'){
+                    $answer = $this->main_menu($input, $output);
+                    if($answer === 'b'){
                         break;
                     }
                     #break;
                 case 'Add a template':
-                    echo "Add a template\n\n";
+                    $io->section("\nAdd a template");
                     echo "Available variables:\n* {name}\n* {username}\n* {displayName}\n";
 
                     //Get a new template from the user
@@ -175,7 +182,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     }
                     #break;
                 case 'Update a template':
-                    echo "Update a template\n\n";
+                    $io->section("\nUpdate a template");
                     //Get an array of templates
                     $templateFile = new FileFinder('src/data', 'templates.json');
                     $templates = $templateFile->find_file(); #$templates is an array of arrays
@@ -211,7 +218,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                     break;
                 case 'Delete a template':
-                    echo "Delete a template\n\n";
+                    $io->section("\nDelete a template");
                     //Get templates for the choice question
                     $templateArray = $this->get_templates();
                     $templateFile = new FileFinder('src/data', 'templates.json');
@@ -254,7 +261,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $arrayUpload->upload_array();
                     break;
                 case 'List users':
-                    echo "List users\n\n";
+                    $io->section("\nList users");
                     //Find the file and get content of the file
                     $userArray = $this->get_users();
                     foreach ($userArray as $key => $value) {
@@ -266,7 +273,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                         break;
                     }
                 case 'Add a user':
-                    echo "Add a user\n\n";
+                    $io->section("\nAdd a user");
                     //Get name, ID, username, and displayname of the new user
                     $nameQuestion = new Question("\nEnter the user's name: ", "name");
                     $name = $helper->ask($input, $output, $nameQuestion);
@@ -301,7 +308,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                     break;
                 case 'Show sent messages':
-                    echo "\nShow sent messages\n";
+                    $io->section("\nShow sent messages");
                     //Get an array of sent messages
                     $messageFile = new FileFinder('src/data', 'messages.json');
                     $messages = $messageFile->find_file();
@@ -317,7 +324,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                     break;
                 case 'Exit':
-                    $keepGoing = false;
+                    $exit = true;
                     return Command::SUCCESS;
             }
         }
@@ -329,7 +336,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
         $helper = $this->getHelper('question');
         $choice = array( 1 => 'Send a message', 2 => 'List templates', 3 => 'Add a template', 4 => 'Update a template', 5 => 'Delete a template', 6 => 'List users', 7 => 'Add a user', 8 => 'Show sent messages', 9 => 'Exit');
         $question = new ChoiceQuestion(
-            "\nWhat would you like to do?\n",
+            "What would you like to do?\n",
             $choice,
             1
         );
@@ -366,9 +373,9 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
         return $messageFile->find_file();
     }
 
-    protected function ask_for_more(InputInterface $input, OutputInterface $output){
+    protected function main_menu(InputInterface $input, OutputInterface $output){
         $helper = $this->getHelper('question');
-        $returnQuestion= new Question("\nenter 'm' for more\n", 'm');
+        $returnQuestion= new Question("\nEnter 'b' to go back to the main menu\n", false);
 
         return $helper->ask($input, $output, $returnQuestion);
     }
