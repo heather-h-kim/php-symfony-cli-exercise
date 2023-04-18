@@ -2,10 +2,9 @@
 
 namespace App\Cli;
 
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Finder\Finder;
 
-class FileFinder extends Command
+class FileFinder
 {
     protected String $fileLocation;
     protected String $fileName;
