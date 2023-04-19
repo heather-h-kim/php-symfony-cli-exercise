@@ -51,8 +51,11 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $selectedTemplate = $this->choice_question($input, $output, "What template?", $templateArray, "Template %s is invalid");
 
                     //List users and ask the user to select one
+                    $this->list_users($input, $output);
+                    $question = new Question("What user?\n", 1);
+                    $selectedKey = $helper->ask($input, $output, $question);
                     $userArray = $this->get_users();
-                    $selectedUser = $this->choice_question($input, $output, "What user?", $userArray, "User %s is invalid");
+                    $selectedUser = $userArray[$selectedKey];
 
                     //Print the message to send
                     echo "\nSending to @$selectedUser:\n";
@@ -221,17 +224,8 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     break;
                 case 'List users':
                     $io->section("\nList users");
-                    //Get the list of users
-                    $userArray = $this->get_users();
 
-                    //Create a green text format
-                    $outputStyle = new OutputFormatterStyle('green');
-                    $output->getFormatter()->setStyle('green', $outputStyle);
-
-                    //Display the users
-                    foreach ($userArray as $key => $value) {
-                        $output->writeln("  [<green>$key</>] $value");
-                    }
+                    $this->list_users($input, $output);
 
                     //Go back to the main menu
                     echo "Going back to the main menu\n";
@@ -329,6 +323,43 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
         return $messageFile->find_file();
     }
 
+    protected function list_users(InputInterface $input, OutputInterface $output){
+        $helper = $this->getHelper('question');
+
+        $userFile = new FileFinder('src/data', 'users.json');
+        $users = $userFile->find_file(); #an array of arrays
+
+        //Create an associative array
+        $userArray = array_column($users, 'displayName');
+        $keyArray = range(1, count($userArray));
+        $updatedUserArray = array_combine($keyArray, $userArray);
+
+        //Create a green text format
+        $outputStyle = new OutputFormatterStyle('green');
+        $output->getFormatter()->setStyle('green', $outputStyle);
+
+        $i = 0;
+
+        while($i < ceil(count($userArray)/10)){
+            $arr = array_slice($userArray, 10 * $i, 10, true);
+            foreach ($arr as $key => $value) {
+                $output->writeln("  [<green>$key</>] $value");
+            }
+
+            if ($i < floor(count($userArray)/10)) {
+                $question = new Question("(enter 'm' for more, enter 's' to stop)", 'm');
+                $more = $helper->ask($input, $output, $question);
+                if ($more === 'm') {
+                    $i++;
+                } else if ($more === 's') {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+
+    }
 
     protected function choice_question(InputInterface $input, OutputInterface $output, String $question, array $array, String $errorMessage){
         $helper = $this->getHelper('question');
