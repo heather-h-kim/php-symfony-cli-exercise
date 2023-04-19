@@ -40,7 +40,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
         while (!$exit) {
             //Display main options and let the user select one
             $optionArray = array( 1 => 'Send a message', 2 => 'List templates', 3 => 'Add a template', 4 => 'Update a template', 5 => 'Delete a template', 6 => 'List users', 7 => 'Add a user', 8 => 'Show sent messages', 9 => 'Exit');
-            $option = $this->choice_question($input, $output, "What would you like to do?\n", $optionArray, "Option % is invalid");
+            $option = $this->choice_question($input, $output, "What would you like to do?", $optionArray, "Option %s is invalid");
 
             switch ($option) {
                 case 'Send a message':
@@ -48,11 +48,11 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                     //List templates and ask the user to select one
                     $templateArray =  $this->get_templates();
-                    $selectedTemplate = $this->choice_question($input, $output, "What template?\n", $templateArray, "Template % is invalid");
+                    $selectedTemplate = $this->choice_question($input, $output, "What template?", $templateArray, "Template %s is invalid");
 
                     //List users and ask the user to select one
                     $userArray = $this->get_users();
-                    $selectedUser = $this->choice_question($input, $output, "What user?\n", $userArray, "User % is invalid");
+                    $selectedUser = $this->choice_question($input, $output, "What user?", $userArray, "User %s is invalid");
 
                     //Print the message to send
                     echo "\nSending to @$selectedUser:\n";
@@ -69,12 +69,11 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     //Ask a confirmation question if the user wants to send the message
                     $messageSendConfirmation = new ConfirmationQuestion("\n(enter 'yes' to send)\n", false);
 
-                    //If no, go back to the main interface
+                    //If no, go back to the main menu
                     if (!$helper->ask($input, $output, $messageSendConfirmation)) {
-                        $answer = $this->main_menu($input, $output);
-                        if($answer === 'b'){
-                            break;
-                        }
+                        echo "Going back to the main menu";
+                        sleep( 1);
+                        break;
                     }
 
                     //If yes, send & save the message
@@ -86,7 +85,6 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $webHookUrl = $urlArray['url'];
 
                     $process = new Process(["curl", "-X", "POST", "-H", "Content-Type: application/json", "-d", "{\"channel\": \"$channel\", \"username\": \"$yourname\", \"text\": \"$messageToSend\", \"icon_emoji\": \":ghost:\"}", "$webHookUrl"]);
-
                     $process->run();
 
                     if (!$process->isSuccessful()) {
@@ -110,12 +108,10 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $arrayUpload = new ArrayUploader('src/data/messages.json', $messages);
                     $arrayUpload->upload_array();
 
-                    //Ask the user to go back to the main interface before going back
-                    $answer = $this->main_menu($input, $output);
-                    if($answer === 'b'){
-                        break;
-                    }
-                    #break;
+                    //Go back to the main menu
+                    echo "Message sent! Going back to the main menu";
+                    sleep( 1);
+                    break;
                 case 'List templates':
                     $io->section("\nList templates");
                     //Get the list of templates
@@ -123,30 +119,28 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                     //Create a green text format
                     $outputStyle = new OutputFormatterStyle('green');
-                    $output->getFormatter()->setStyle('key', $outputStyle);
+                    $output->getFormatter()->setStyle('green', $outputStyle);
 
                     //Display the templates
                     foreach ($templateArray as $key => $value) {
-                        $output->writeln( "  [<key>$key</>] $value");
+                        $output->writeln( "  [<green>$key</>] $value");
                     }
 
-                    //Ask the user to go back to the main interface before going back
-                    $answer = $this->main_menu($input, $output);
-                    if($answer === 'b'){
-                        break;
-                    }
-                    #break;
+                    //Go back to the main menu
+                    echo "Going back to the main menu";
+                    sleep( 1);
+                    break;
                 case 'Add a template':
                     $io->section("\nAdd a template");
                     echo "Available variables:\n* {name}\n* {username}\n* {displayName}\n";
 
-                    //Get a new template from the user
-                    $question = new Question("Enter your new template and press enter to save:\n", 'Hello!');
-                    $newTemplate = $helper->ask($input, $output, $question);
-
                     //Get current templates in an array of arrays format
                     $templateFile = new FileFinder('src/data', 'templates.json');
                     $templates = $templateFile->find_file();
+
+                    //Get a new template message from the user
+                    $question = new Question("Enter your new template and press enter to save:\n", 'Hello!');
+                    $newTemplate = $helper->ask($input, $output, $question);
 
                     //Create a new template object
                     $arrayToAdd = array('id' => count($templates) + 1, 'message' => $newTemplate);
@@ -159,25 +153,17 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $arrayUpload = new ArrayUploader('src/data/templates.json', $templates);
                     $arrayUpload->upload_array();
 
-                    //Ask the user to go back to the main interface before going back
-                    $answer = $this->main_menu($input, $output);
-                    if($answer === 'b'){
-                        break;
-                    }
-                    #break;
+                    //Go back to the main menu
+                    echo "Template Added! Going back to the main menu";
+                    sleep( 1);
+                    break;
                 case 'Update a template':
                     $io->section("\nUpdate a template");
                     //Get templates for the choice question
                     $templateArray = $this->get_templates();
 
                     //Ask the user to select the template to update
-                    $question = new ChoiceQuestion(
-                        "\nWhat template do you want to update?\n",
-                        $templateArray,
-                        1
-                    );
-                    $question->setErrorMessage('Template % is invalid.');
-                    $selectedTemplate = $helper->ask($input, $output, $question);
+                    $selectedTemplate = $this->choice_question($input, $output, "What template do you want to update?", $templateArray, "Template %s is invalid");
 
                     //Find the key for the selected template value
                     $keyToUpdate = array_search($selectedTemplate, $templateArray);
@@ -195,12 +181,10 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $arrayUpload = new ArrayUploader('src/data/templates.json', $templates);
                     $arrayUpload->upload_array();
 
-                    //Ask the user to go back to the main interface before going back
-                    $answer = $this->main_menu($input, $output);
-                    if($answer === 'b'){
-                        break;
-                    }
-                    #break;
+                    //Go back to the main menu
+                    echo "Template updated! Going back to the main menu";
+                    sleep( 1);
+                    break;
                 case 'Delete a template':
                     $io->section("\nDelete a template");
                     //Get templates for the choice question
@@ -217,6 +201,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $question->setErrorMessage('Template %s is invalid.');
 
                     $selectedTemplate = $helper->ask($input, $output, $question);
+                    $selectedTemplate = $this->choice_question($input, $output, "What template do you want to delete?", $templateArray, "Template %s is invalid");
 
                     //Find the key for the selected template value
                     $keyToDelete = array_search($selectedTemplate, $templateArray);
@@ -226,29 +211,24 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $confirmation = new ConfirmationQuestion("\nAre you sure? Enter 'y'\n", false);
 
                     if (!$helper->ask($input, $output, $confirmation)) {
-                        $answer = $this->main_menu($input, $output);
-                        if($answer === 'b'){
-                            break;
-                        }
+                        echo "Going back to the main menu";
+                        sleep( 1);
+                        break;
                     }
 
                     //Delete the selected template
                     $templateFile = new FileFinder('src/data', 'templates.json');
                     $templates = $templateFile->find_file();
                     unset($templates[$keyToDelete-1]);
-                    print_r($templates);
 
                     //Replace the current json file with the updated file//
                     $arrayUpload = new ArrayUploader('src/data/templates.json', $templates);
                     $arrayUpload->upload_array();
 
-                    //Ask the user to go back to the main interface before going back
-                    $answer = $this->main_menu($input, $output);
-                    if($answer === 'b'){
-                        break;
-                    }
-
-                    #break;
+                    //Go back to the main menu
+                    echo "Template deleted! Going back to the main menu";
+                    sleep( 1);
+                    break;
                 case 'List users':
                     $io->section("\nList users");
                     //Get the list of users
@@ -256,18 +236,17 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                     //Create a green text format
                     $outputStyle = new OutputFormatterStyle('green');
-                    $output->getFormatter()->setStyle('key', $outputStyle);
+                    $output->getFormatter()->setStyle('green', $outputStyle);
 
                     //Display the users
                     foreach ($userArray as $key => $value) {
-                        echo "  [<key>$key</>] $value\n";
+                        echo "  [<green>$key</>] $value\n";
                     }
 
-                    //Ask the user to go back to the main interface before going back
-                    $answer = $this->main_menu($input, $output);
-                    if($answer === 'b'){
-                        break;
-                    }
+                    //Go back to the main menu
+                    echo "Going back to the main menu";
+                    sleep( 1);
+                    break;
                 case 'Add a user':
                     $io->section("\nAdd a user");
                     //Get name, ID, username, and displayname of the new user
@@ -298,13 +277,10 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $arrayUpload = new ArrayUploader('src/data/users.json', $users);
                     $arrayUpload->upload_array();
 
-                    //Ask the user to go back to the main interface before going back
-                    $answer = $this->main_menu($input, $output);
-                    if($answer === 'b'){
-                        break;
-                    }
-
-                    #break;
+                    //Go back to the main menu
+                    echo "User added! Going back to the main menu";
+                    sleep( 1);
+                    break;
                 case 'Show sent messages':
                     $io->section("\nShow sent messages");
                     //Get an array of sent messages
@@ -320,13 +296,10 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                         ->setRows($newArray);
                     $table->render();
 
-                    //Ask the user to go back to the main interface before going back
-                    $answer = $this->main_menu($input, $output);
-                    if($answer === 'b'){
-                        break;
-                    }
-
-                    #break;
+                    //Go back to the main menu
+                    echo "Going back to the main menu";
+                    sleep( 1);
+                    break;
                 case 'Exit':
                     $exit = true;
                     return Command::SUCCESS;
@@ -334,19 +307,6 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
         }
 
         return Command::SUCCESS;
-    }
-
-    protected function list_main_options(InputInterface $input, OutputInterface $output){
-        $helper = $this->getHelper('question');
-        $choice = array( 1 => 'Send a message', 2 => 'List templates', 3 => 'Add a template', 4 => 'Update a template', 5 => 'Delete a template', 6 => 'List users', 7 => 'Add a user', 8 => 'Show sent messages', 9 => 'Exit');
-        $question = new ChoiceQuestion(
-            "What would you like to do?\n",
-            $choice,
-            1
-        );
-        $question->setErrorMessage('Option %s is invalid.');
-
-        return $helper->ask($input, $output, $question);
     }
 
 
@@ -357,18 +317,6 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
         //Create an associative array
         return array_column($templates, 'message', 'id');
-    }
-
-    protected function choice_question(InputInterface $input, OutputInterface $output, String $question, array $array, String $errorMessage){
-        $helper = $this->getHelper('question');
-        $question = new ChoiceQuestion(
-            "$question\n",
-            $array,
-            1
-        );
-        $question->setErrorMessage("$errorMessage");
-
-        return $helper->ask($input, $output, $question);
     }
 
 
@@ -384,24 +332,25 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
         return array_combine($keyArray, $userArray);
     }
 
+
     protected function get_messages(): array
     {
         $messageFile = new FileFinder('src/data', 'messages.json');
         return $messageFile->find_file();
     }
 
-    protected function main_menu(InputInterface $input, OutputInterface $output){
+
+    protected function choice_question(InputInterface $input, OutputInterface $output, String $question, array $array, String $errorMessage){
         $helper = $this->getHelper('question');
-        $returnQuestion= new Question("\nEnter 'b' to go back to the main menu\n", false);
+        $question = new ChoiceQuestion(
+            "$question\n",
+            $array,
+            1
+        );
+        $question->setErrorMessage("$errorMessage");
 
-        return $helper->ask($input, $output, $returnQuestion);
+        return $helper->ask($input, $output, $question);
     }
-
-
-
-
-
-
 
 
 
