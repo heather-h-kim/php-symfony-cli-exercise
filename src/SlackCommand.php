@@ -76,7 +76,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $messageDateTime = $dateTime->format(\DateTimeInterface::RFC2822);
 
                     //Ask a confirmation question if the user wants to send the message
-                    $messageSendConfirmation = new ConfirmationQuestion("\n(enter 'yes' to send)\n", false);
+                    $messageSendConfirmation = new ConfirmationQuestion("\n(enter 'y' to send)\n", false);
 
                     //If no, go back to the main menu
 
@@ -220,9 +220,10 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $templateFile = new FileFinder('src/data', 'templates.json');
                     $templates = $templateFile->find_file();
                     unset($templates[$keyToDelete-1]);
+                    $reindexedTemplates = array_values($templates);
 
                     //Replace the current json file with the updated file//
-                    $arrayUpload = new ArrayUploader('src/data/templates.json', $templates);
+                    $arrayUpload = new ArrayUploader('src/data/templates.json', $reindexedTemplates);
                     $arrayUpload->upload_array();
 
                     //Go back to the main menu
@@ -307,7 +308,10 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
         $templates = $templateFile->find_file(); #$templates is an array of arrays
 
         //Create an associative array
-        return array_column($templates, 'message', 'id');
+        $templateArray = array_column($templates, 'message');
+        $keyArray = range(1, count($templateArray));
+
+        return array_combine($keyArray, $templateArray);
     }
 
 
