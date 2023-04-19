@@ -191,16 +191,6 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $templateArray = $this->get_templates();
 
                     //Ask the user to select a template to delete
-
-                    $question = new ChoiceQuestion(
-                        "\nWhat template do you want to delete?\n",
-                        $templateArray,
-                        1
-                    );
-
-                    $question->setErrorMessage('Template %s is invalid.');
-
-                    $selectedTemplate = $helper->ask($input, $output, $question);
                     $selectedTemplate = $this->choice_question($input, $output, "What template do you want to delete?", $templateArray, "Template %s is invalid");
 
                     //Find the key for the selected template value
