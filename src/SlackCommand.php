@@ -40,7 +40,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
         while (!$exit) {
             //Display main options and let the user select one
             $optionArray = array( 1 => 'Send a message', 2 => 'List templates', 3 => 'Add a template', 4 => 'Update a template', 5 => 'Delete a template', 6 => 'List users', 7 => 'Add a user', 8 => 'Show sent messages', 9 => 'Exit');
-            $option = $this->choice_question($input, $output, "What would you like to do?", $optionArray, "Option %s is invalid");
+            $option = $this->choice_question($input, $output, "\nWhat would you like to do?", $optionArray, "Option %s is invalid");
 
             switch ($option) {
                 case 'Send a message':
@@ -51,15 +51,21 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $selectedTemplate = $this->choice_question($input, $output, "What template?", $templateArray, "Template %s is invalid");
 
                     //List users and ask the user to select one
+                    echo "What user?\n";
                     $this->list_users($input, $output);
-                    $question = new Question("What user?\n", 1);
+                    $question = new Question("Select a user\n", 1);
                     $selectedKey = $helper->ask($input, $output, $question);
-                    $userArray = $this->get_users();
-                    $selectedUser = $userArray[$selectedKey];
 
                     //Print the message to send
-                    echo "\nSending to @$selectedUser:\n";
-                    $messageToSend = str_replace("{displayName}", $selectedUser, $selectedTemplate);
+                    $userFile = new FileFinder('src/data', 'users.json');
+                    $users = $userFile->find_file();
+
+                    $selectedDisplayName = $users[$selectedKey-1]['displayName'];
+                    echo "\nSending to @$selectedDisplayName:\n";
+
+                    $placeholders = array("{name}", "{username}", "{displayName}");
+                    $values = array($users[$selectedKey-1]['name'], $users[$selectedKey-1]['username'], $users[$selectedKey-1]['displayName']);
+                    $messageToSend = str_replace($placeholders, $values, $selectedTemplate);
                     echo "\n$messageToSend\n";
 
                     //Grab the current time when the message is sent
@@ -73,8 +79,9 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $messageSendConfirmation = new ConfirmationQuestion("\n(enter 'yes' to send)\n", false);
 
                     //If no, go back to the main menu
+
                     if (!$helper->ask($input, $output, $messageSendConfirmation)) {
-                        echo "Going back to the main menu";
+                        $output->writeln("\n <fg=yellow>Going back to the main menu</>\n");
                         sleep( 1);
                         break;
                     }
@@ -82,7 +89,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     //If yes, send & save the message
                     //Send the message
                     $yourname = "Heather";
-                    $channel = "#accelerated-engineer-program";
+                    $channel = "#aep-cookies";
                     $urlFile = new FileFinder('src/data', 'url.json');
                     $urlArray = $urlFile->find_file();
                     $webHookUrl = $urlArray['url'];
@@ -112,7 +119,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $arrayUpload->upload_array();
 
                     //Go back to the main menu
-                    echo "Message sent! Going back to the main menu";
+                    $output->writeln("\n <fg=yellow>Message sent! Going back to the main menu</>\n");
                     sleep( 1);
                     break;
                 case 'List templates':
@@ -130,7 +137,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     }
 
                     //Go back to the main menu
-                    echo "Going back to the main menu";
+                    $output->writeln("\n <fg=yellow>Going back to the main menu</>\n");
                     sleep( 1);
                     break;
                 case 'Add a template':
@@ -157,7 +164,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $arrayUpload->upload_array();
 
                     //Go back to the main menu
-                    echo "Template Added! Going back to the main menu";
+                    $output->writeln("\n <fg=yellow>Template added! Going back to the main menu</>\n");
                     sleep( 1);
                     break;
                 case 'Update a template':
@@ -185,7 +192,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $arrayUpload->upload_array();
 
                     //Go back to the main menu
-                    echo "Template updated! Going back to the main menu";
+                    $output->writeln("\n <fg=yellow>Template updated! Going back to the main menu</>\n");
                     sleep( 1);
                     break;
                 case 'Delete a template':
@@ -204,7 +211,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $confirmation = new ConfirmationQuestion("\nAre you sure? Enter 'y'\n", false);
 
                     if (!$helper->ask($input, $output, $confirmation)) {
-                        echo "Going back to the main menu";
+                        $output->writeln("\n <fg=yellow>Going back to the main menu</>\n");
                         sleep( 1);
                         break;
                     }
@@ -219,7 +226,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $arrayUpload->upload_array();
 
                     //Go back to the main menu
-                    echo "Template deleted! Going back to the main menu";
+                    $output->writeln("\n <fg=yellow>Template deleted! Going back to the main menu</>\n");
                     sleep( 1);
                     break;
                 case 'List users':
@@ -228,7 +235,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $this->list_users($input, $output);
 
                     //Go back to the main menu
-                    echo "Going back to the main menu\n";
+                    $output->writeln("\n <fg=yellow>Going back to the main menu</>\n");
                     sleep( 1);
                     break;
                 case 'Add a user':
@@ -262,7 +269,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $arrayUpload->upload_array();
 
                     //Go back to the main menu
-                    echo "User added! Going back to the main menu";
+                    $output->writeln("\n <fg=yellow>User added! Going back to the main menu</>\n");
                     sleep( 1);
                     break;
                 case 'Show sent messages':
@@ -281,7 +288,7 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $table->render();
 
                     //Go back to the main menu
-                    echo "Going back to the main menu";
+                    $output->writeln("\n <fg=yellow>Going back to the main menu</>\n");
                     sleep( 1);
                     break;
                 case 'Exit':
@@ -340,13 +347,13 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
         $i = 0;
 
-        while($i < ceil(count($userArray)/10)){
-            $arr = array_slice($userArray, 10 * $i, 10, true);
+        while($i < ceil(count($updatedUserArray)/10)){
+            $arr = array_slice($updatedUserArray, 10 * $i, 10, true);
             foreach ($arr as $key => $value) {
                 $output->writeln("  [<green>$key</>] $value");
             }
 
-            if ($i < floor(count($userArray)/10)) {
+            if ($i < floor(count($updatedUserArray)/10)) {
                 $question = new Question("(enter 'm' for more, enter 's' to stop)", 'm');
                 $more = $helper->ask($input, $output, $question);
                 if ($more === 'm') {
