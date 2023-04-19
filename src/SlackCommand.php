@@ -230,11 +230,11 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
 
                     //Display the users
                     foreach ($userArray as $key => $value) {
-                        echo "  [<green>$key</>] $value\n";
+                        $output->writeln("  [<green>$key</>] $value");
                     }
 
                     //Go back to the main menu
-                    echo "Going back to the main menu";
+                    echo "Going back to the main menu\n";
                     sleep( 1);
                     break;
                 case 'Add a user':
