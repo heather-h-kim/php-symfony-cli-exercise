@@ -280,7 +280,6 @@ class SlackCommand extends \Symfony\Component\Console\Command\Command
                     $messages = $messageFile->find_file();
 
                     $newArray = array_map(static fn($arr) => array($arr['date'], $arr['message']), $messages);
-                    print_r($newArray);
 
                     //Print the message in a table format
                     $table = new Table($output);
